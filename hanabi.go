@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"math/rand"
 	"time"
 )
@@ -42,10 +43,29 @@ var VALUE_COUNTS = map[value]int{
 	5: 1,
 }
 
+// map from number of players to number of initial cards
+var INITIAL_CARDS = map[int]int {
+	2: 5,
+	3: 5,
+	4: 4,
+	5: 4,
+}
+
 func main() {
 	fmt.Println("Hello, world!")
 	
-	display(shuffle(createDeck()))
+	deck := shuffle(createDeck())
+	state, err := initialDraw(deck, 4)
+	
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	for i := 0; i < 4; i++ {
+		fmt.Printf("PLAYER %d\n", i)
+		displayDeck(state.heldCards[i])
+	}
+
 }
 
 
@@ -55,7 +75,37 @@ type card struct {
 	color color
 }
 
-func display(deck []card) {
+type gameState struct {
+	drawPile []card
+	heldCards map[int][]card
+}
+
+func initialDraw(deck []card, numPlayers int) (*gameState, error) {
+	cardsPerPlayer, ok := INITIAL_CARDS[numPlayers]
+	if !ok {
+		return nil, fmt.Errorf("Invalid number of players: %d", numPlayers)
+	}
+
+	state := &gameState{heldCards: make(map[int][]card), drawPile: []card{}}
+
+	for p := 0; p < numPlayers; p++ {
+		state.heldCards[p] = []card{}
+	}
+
+	drawCount := 0
+	for c := 0; c < cardsPerPlayer; c++ {
+		for p := 0; p < numPlayers; p++ {
+			// TODO(mrjones): bounds check
+			state.heldCards[p] = append(state.heldCards[p], deck[drawCount])
+			drawCount++
+		}
+	}
+
+	state.drawPile = deck[drawCount:]
+	return state, nil
+}
+
+func displayDeck(deck []card) {
 	for _, card := range(deck) {
 		fmt.Printf("color: %s, value: %d\n", COLOR_INFOS[card.color].fullName, card.value)
 	}
