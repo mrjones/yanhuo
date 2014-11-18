@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"math/rand"
+	"time"
 )
 
 type color int8
@@ -43,7 +45,7 @@ var VALUE_COUNTS = map[value]int{
 func main() {
 	fmt.Println("Hello, world!")
 	
-	_ = createDeck()
+	display(shuffle(createDeck()))
 }
 
 
@@ -53,13 +55,29 @@ type card struct {
 	color color
 }
 
+func display(deck []card) {
+	for _, card := range(deck) {
+		fmt.Printf("color: %s, value: %d\n", COLOR_INFOS[card.color].fullName, card.value)
+	}
+}
+
+func shuffle(in []card) []card {
+	rand.Seed(time.Now().UTC().UnixNano())
+
+	out := []card{}
+	for _, i := range rand.Perm(len(in)) {
+		out = append(out, in[i])
+	}
+
+	return out
+}
+
 func createDeck() []card {
 	cards := []card{}
 	for color, _ := range(COLOR_INFOS) {
 		for value, count := range(VALUE_COUNTS) {
 			for i := 0; i < count; i++ {
 				cards = append(cards, card{value: value, color: color})
-				fmt.Printf("color: %s, value: %d\n", COLOR_INFOS[color].fullName, value)
 			}
 		}
 	}
