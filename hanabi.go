@@ -9,7 +9,7 @@ import (
 
 type Color int8
 type Value int8
-type PlayerID int8
+type PlayerIndex int8
 type HandIndex int8
 
 const (
@@ -53,7 +53,7 @@ var INITIAL_CARDS = map[int]int {
 }
 
 type GiveInformationAction struct {
-	PlayerID PlayerID
+	PlayerIndex PlayerIndex
 
 	// Exactly one of color or value must be non-null
 	Color *Color
@@ -80,7 +80,7 @@ type Action struct {
 func (a Action) DebugString() string {
 	switch {
 	case a.GiveInformation != nil:
-		return fmt.Sprintf("Gave information to player: %d", a.GiveInformation.PlayerID)
+		return fmt.Sprintf("Gave information to player: %d", a.GiveInformation.PlayerIndex)
 	case a.Discard != nil:
 		return fmt.Sprintf("Discarded card %d", a.Discard.Index)
 	case a.Play != nil:
@@ -94,20 +94,20 @@ func (a Action) DebugString() string {
 type PlayerLogic interface {
 	// map player -> []card
 	// Act
-	Act(otherPlayersCards map[PlayerID][]Card, myNumCards int, blueTokens int, redTokens int) Action
+	Act(otherPlayersCards map[PlayerIndex][]Card, myNumCards int, blueTokens int, redTokens int) Action
 
-	ObserveAction(actor PlayerID, action Action)
+	ObserveAction(actor PlayerIndex, action Action)
 }
 
 type SimplePlayerLogic struct {
 	Name string
 }
 
-func (p *SimplePlayerLogic) Act(otherPlayersCards map[PlayerID][]Card, myNumCards int, blueTokens int, redTokens int) Action {
+func (p *SimplePlayerLogic) Act(otherPlayersCards map[PlayerIndex][]Card, myNumCards int, blueTokens int, redTokens int) Action {
 	return Action{Play: &PlayAction{Index: 0}}
 }
 
-func (p *SimplePlayerLogic) ObserveAction(actor PlayerID, action Action) {
+func (p *SimplePlayerLogic) ObserveAction(actor PlayerIndex, action Action) {
 	log.Printf("%s observed %s (by %d)\n", p.Name, action, actor)
 }
 
@@ -124,7 +124,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	for i := PlayerID(0); int(i) < len(players); i++ {
+	for i := PlayerIndex(0); int(i) < len(players); i++ {
 		fmt.Printf("PLAYER %d\n", i)
 		displayDeck(state.playerStates[i].cards)
 	}
@@ -142,10 +142,12 @@ type playerState struct {
 
 type gameState struct {
 	drawPile []Card
-	playerStates map[PlayerID]*playerState
+	playerStates []playerState
 
 	redTokens int  // bad plays
 	blueTokens int  // available information
+
+	
 }
 
 func initializeGame(deck []Card, players []PlayerLogic) (*gameState, error) {
@@ -156,10 +158,13 @@ func initializeGame(deck []Card, players []PlayerLogic) (*gameState, error) {
 		return nil, fmt.Errorf("Invalid number of players: %d", numPlayers)
 	}
 
-	state := &gameState{playerStates: make(map[PlayerID]*playerState), drawPile: []Card{}}
+	state := &gameState{
+		playerStates: make([]playerState, numPlayers),
+		drawPile: []Card{},
+	}
 
-	for p := PlayerID(0); int(p) < numPlayers; p++ {
-		state.playerStates[p] = &playerState{
+	for p := PlayerIndex(0); int(p) < numPlayers; p++ {
+		state.playerStates[p] = playerState{
 			cards: []Card{},
 			logic: players[p],
 		}
@@ -167,7 +172,7 @@ func initializeGame(deck []Card, players []PlayerLogic) (*gameState, error) {
 
 	drawCount := 0
 	for c := 0; c < cardsPerPlayer; c++ {
-		for p := PlayerID(0); int(p) < numPlayers; p++ {
+		for p := PlayerIndex(0); int(p) < numPlayers; p++ {
 			// TODO(mrjones): bounds check
 			state.playerStates[p].cards = append(state.playerStates[p].cards, deck[drawCount])
 			drawCount++
