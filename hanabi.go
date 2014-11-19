@@ -13,6 +13,8 @@ type PlayerIndex int8
 type HandIndex int8
 
 const (
+	MAX_BLUE_TOKENS = 8
+
 	WHITE Color = iota
 	RED
 	BLUE
@@ -53,7 +55,11 @@ var INITIAL_CARDS = map[int]int {
 }
 
 type GiveInformationAction struct {
+	// The player information is being given about
 	PlayerIndex PlayerIndex
+
+	// The cards matching the information being given
+	Cards []HandIndex
 
 	// Exactly one of color or value must be non-null
 	Color *Color
@@ -133,7 +139,7 @@ func main() {
 
 	for {
 		log.Println("---")
-		takeTurn(state)
+		state.takeTurn()
 	}
 }
 
@@ -150,7 +156,7 @@ type playerState struct {
 type gameState struct {
 	drawPile []Card
 	pileHeights map[Color]int
-	playerStates []playerState
+	playerStates []*playerState
 
 	redTokens int  // bad plays
 	blueTokens int  // available information
@@ -158,7 +164,104 @@ type gameState struct {
 	currentPlayer PlayerIndex
 }
 
-func takeTurn(game *gameState) {
+func (game *gameState) drawReplacement(player *playerState, card HandIndex) {
+	if len(game.drawPile) > 0 {
+		// draw a card
+		drawn := game.drawPile[0]
+		player.cards[card] = drawn
+		game.drawPile = game.drawPile[1:]
+		log.Printf("Player %d drew a %s %d\n", game.currentPlayer,
+			COLOR_INFOS[drawn.Color].fullName, drawn.Value)	
+	} else {
+		// nothing to draw, remove this card
+		player.cards[card] = player.cards[len(player.cards) - 1]
+		player.cards = player.cards[1:]
+		log.Printf("Nothing left to draw for player %d\n", game.currentPlayer)
+	}
+}
+
+func (game *gameState) handleGiveInformationAction(action *GiveInformationAction) {
+	if game.blueTokens < 1 {
+		panic("Invalid action: not enough blue tokens")
+	}
+
+	// TODO(mrjones): validate that GiveInformationAction is valid
+	// (i.e. only one of Color and Value is set)
+
+	// TODO(mrjones): validate that the information given is correct and complete
+	recipient := game.playerStates[action.PlayerIndex]
+	for candidateCardPos, candidateCard := range(recipient.cards) {
+		givingInformationAboutThisCard := false
+		for _, actualCardPos := range(action.Cards) {
+			if actualCardPos == HandIndex(candidateCardPos) {
+				givingInformationAboutThisCard = true
+			}
+		}
+
+		if givingInformationAboutThisCard {
+			// check that the information matches this card
+			if action.Color != nil && candidateCard.Color != *action.Color {
+				panic("GiveInformationAction color does not match actual card color")
+			}
+			if action.Value != nil && candidateCard.Value != *action.Value {
+				panic("GiveInformationAction value does not match actual card value")
+			}
+		} else {
+			// check that the information does NOT apply to this card
+			if action.Color != nil && candidateCard.Color == *action.Color {
+				panic("GiveInformationAction color matches un-referenced card")
+			}
+			if action.Value != nil && candidateCard.Value == *action.Value {
+				panic("GiveInformationAction value matches un-referenced card")
+			}
+			
+		}
+	}
+
+	game.blueTokens--
+	
+}
+
+func (game *gameState) handleDiscardAction(player *playerState, action *DiscardAction) {
+	log.Println("TODO: implement discard")
+	// TODO(mrjones): check bounds
+	card := player.cards[action.Index]
+	log.Printf("Player %d discards a %s %d\n",
+		game.currentPlayer, COLOR_INFOS[card.Color].fullName, card.Value)
+
+	game.drawReplacement(player, action.Index)
+
+	if game.blueTokens < MAX_BLUE_TOKENS {
+		game.blueTokens++
+	}
+}
+
+func (game *gameState) handlePlayAction(player *playerState, action *PlayAction) {
+	// TODO(mrjones): check bounds
+	card := player.cards[action.Index]
+	log.Printf("Player %d plays a %s %d\n",
+		game.currentPlayer, COLOR_INFOS[card.Color].fullName, card.Value)
+	if int(card.Value) ==  game.pileHeights[card.Color] + 1 {
+		// successful play
+		game.pileHeights[card.Color]++
+		log.Printf("Good play! %s pile now has height: %d\n",
+			COLOR_INFOS[card.Color].fullName, game.pileHeights[card.Color])
+		// TODO(mrjones): check if we won the game
+	} else {
+		// unsuccessful play
+		game.redTokens--
+		log.Printf("That was a bad play. Red tokens left: %d\n", game.redTokens)
+		if game.redTokens == 0 {
+			log.Println("We lost the game!")
+			panic("we lost the game")
+			// TODO(mrjones): we lost the game
+		}
+	}
+
+	game.drawReplacement(player, action.Index)
+}
+
+func (game *gameState) takeTurn() {
 	player := game.playerStates[game.currentPlayer]
 
 	otherPlayersCards := make(map[PlayerIndex][]Card)
@@ -177,54 +280,11 @@ func takeTurn(game *gameState) {
 
 	switch {
 	case action.GiveInformation != nil:
-		log.Println("TODO: implement give information")
+		game.handleGiveInformationAction(action.GiveInformation)
 	case action.Discard != nil:
-		log.Println("TODO: implement discard")
-		// TODO(mrjones): check bounds
-		card := player.cards[action.Play.Index]
-		log.Printf("Player %d discards a %s %d\n",
-			game.currentPlayer, COLOR_INFOS[card.Color].fullName, card.Value)
-		// TODO(mrjones): replace card
-
+		game.handleDiscardAction(player, action.Discard)
 	case action.Play != nil:
-		log.Println("TODO: implement play")
-		// TODO(mrjones): check bounds
-		card := player.cards[action.Play.Index]
-		log.Printf("Player %d plays a %s %d\n",
-			game.currentPlayer, COLOR_INFOS[card.Color].fullName, card.Value)
-		if int(card.Value) ==  game.pileHeights[card.Color] + 1 {
-			// successful play
-			game.pileHeights[card.Color]++
-			log.Printf("Good play! %s pile now has height: %d\n",
-				COLOR_INFOS[card.Color].fullName, game.pileHeights[card.Color])
-			// TODO(mrjones): check if we won the game
-		} else {
-			// unsuccessful play
-			game.redTokens--
-			log.Printf("That was a bad play. Red tokens left: %d\n", game.redTokens)
-			if game.redTokens == 0 {
-				log.Println("We lost the game!")
-				panic("we lost the game")
-				// TODO(mrjones): we lost the game
-			}
-		}
-
-		if len(game.drawPile) > 0 {
-			// draw a card
-			drawn := game.drawPile[0]
-			player.cards[action.Play.Index] = drawn
-			game.drawPile = game.drawPile[1:]
-			log.Printf("Player %d drew a %s %d\n", game.currentPlayer,
-				COLOR_INFOS[drawn.Color].fullName, drawn.Value)
-				
-		} else {
-			// nothing to draw, remove this card
-			player.cards[action.Play.Index] = player.cards[len(player.cards) - 1]
-			player.cards = player.cards[1:]
-			log.Printf("Nothing left to draw for player %d\n", game.currentPlayer)
-		}
-
-		// TODO(mrjones): replace card
+		game.handlePlayAction(player, action.Play)
 	default:
 		panic("INVALID ACTION")
 	}
@@ -249,12 +309,12 @@ func initializeGame(deck []Card, players []PlayerLogic) (*gameState, error) {
 	}
 
 	state := &gameState{
-		playerStates: make([]playerState, numPlayers),
+		playerStates: make([]*playerState, numPlayers),
 		pileHeights: make(map[Color]int),
 		drawPile: []Card{},
 		currentPlayer: PlayerIndex(rand.Intn(numPlayers)),
 		redTokens: 3,
-		blueTokens: 8,
+		blueTokens: MAX_BLUE_TOKENS,
 	}
 
 	for i, _ := range(ALL_COLORS) {
@@ -262,7 +322,7 @@ func initializeGame(deck []Card, players []PlayerLogic) (*gameState, error) {
 	}
 
 	for p := PlayerIndex(0); int(p) < numPlayers; p++ {
-		state.playerStates[p] = playerState{
+		state.playerStates[p] = &playerState{
 			cards: []Card{},
 			logic: players[p],
 		}
