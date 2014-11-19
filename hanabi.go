@@ -92,7 +92,11 @@ func (a Action) DebugString() string {
 
 
 type PlayerLogic interface {
-	Act(otherPlayersCards map[PlayerIndex][]Card, myNumCards int, blueTokens int, redTokens int) Action
+	Act(
+		otherPlayersCards map[PlayerIndex][]Card,
+		myNumCards int,
+		blueTokens int,
+		redTokens int) Action
 
 	ObserveAction(actor PlayerIndex, action Action)
 }
@@ -127,6 +131,7 @@ func main() {
 		displayDeck(state.playerStates[i].cards)
 	}
 
+	takeTurn(state)
 	takeTurn(state)
 }
 
