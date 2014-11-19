@@ -108,7 +108,7 @@ func (p *SimplePlayerLogic) Act(otherPlayersCards map[PlayerIndex][]Card, myNumC
 }
 
 func (p *SimplePlayerLogic) ObserveAction(actor PlayerIndex, action Action) {
-	log.Printf("%s observed %s (by %d)\n", p.Name, action, actor)
+	log.Printf("%s observed '%s' (by player %d)\n", p.Name, action.DebugString(), actor)
 }
 
 func main() {
@@ -128,6 +128,8 @@ func main() {
 		fmt.Printf("PLAYER %d\n", i)
 		displayDeck(state.playerStates[i].cards)
 	}
+
+	takeTurn(state)
 }
 
 type Card struct {
@@ -147,7 +149,35 @@ type gameState struct {
 	redTokens int  // bad plays
 	blueTokens int  // available information
 
-	nextPlayer PlayerIndex
+	currentPlayer PlayerIndex
+}
+
+func takeTurn(game *gameState) {
+	player := game.playerStates[game.currentPlayer]
+
+	otherPlayersCards := make(map[PlayerIndex][]Card)
+
+	for i, player := range(game.playerStates) {
+		if PlayerIndex(i) != game.currentPlayer {
+			otherPlayersCards[PlayerIndex(i)] = player.cards
+		}
+	}
+
+	action := player.logic.Act(
+		otherPlayersCards, len(player.cards), game.blueTokens, game.redTokens)
+	// TODO(mrjones): validate action
+
+	log.Printf("Player %d took action '%s'\n", game.currentPlayer, action.DebugString())
+
+	for i, player := range(game.playerStates) {
+		if PlayerIndex(i) != game.currentPlayer {
+			player.logic.ObserveAction(game.currentPlayer, action)
+		}
+	}
+
+
+	game.currentPlayer = PlayerIndex(
+		(int(game.currentPlayer) + 1) % len(game.playerStates))
 }
 
 func initializeGame(deck []Card, players []PlayerLogic) (*gameState, error) {
@@ -161,7 +191,7 @@ func initializeGame(deck []Card, players []PlayerLogic) (*gameState, error) {
 	state := &gameState{
 		playerStates: make([]playerState, numPlayers),
 		drawPile: []Card{},
-		nextPlayer: PlayerIndex(rand.Intn(numPlayers)),
+		currentPlayer: PlayerIndex(rand.Intn(numPlayers)),
 		redTokens: 3,
 		blueTokens: 8,
 	}
