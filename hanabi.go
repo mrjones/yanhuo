@@ -53,7 +53,7 @@ var INITIAL_CARDS = map[int]int {
 }
 
 type GiveInformationAction struct {
-	Player PlayerID
+	PlayerID PlayerID
 
 	// Exactly one of color or value must be non-null
 	Color *Color
@@ -77,62 +77,99 @@ type Action struct {
 	Play *PlayAction
 }
 
-type Player interface {
+func (a Action) DebugString() string {
+	switch {
+	case a.GiveInformation != nil:
+		return fmt.Sprintf("Gave information to player: %d", a.GiveInformation.PlayerID)
+	case a.Discard != nil:
+		return fmt.Sprintf("Discarded card %d", a.Discard.Index)
+	case a.Play != nil:
+		return fmt.Sprintf("Played card %d", a.Play.Index)
+	default:
+		return "INVALID ACTION"
+	}
+}
+
+
+type PlayerLogic interface {
 	// map player -> []card
 	// Act
-	Act(otherPlayersCards map[PlayerID][]Card, blueTokens int, redTokens int) Action
+	Act(otherPlayersCards map[PlayerID][]Card, myNumCards int, blueTokens int, redTokens int) Action
 
 	ObserveAction(actor PlayerID, action Action)
+}
+
+type SimplePlayerLogic struct {
+	Name string
+}
+
+func (p *SimplePlayerLogic) Act(otherPlayersCards map[PlayerID][]Card, myNumCards int, blueTokens int, redTokens int) Action {
+	return Action{Play: &PlayAction{Index: 0}}
+}
+
+func (p *SimplePlayerLogic) ObserveAction(actor PlayerID, action Action) {
+	log.Printf("%s observed %s (by %d)\n", p.Name, action, actor)
 }
 
 func main() {
 	fmt.Println("Hello, world!")
 	
 	deck := shuffle(createDeck())
-	state, err := initialDraw(deck, 4)
+	players := []PlayerLogic{
+		&SimplePlayerLogic{"Matt"}, &SimplePlayerLogic{"Cristina"}}
+
+	state, err := initializeGame(deck, players)
 	
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	for i := PlayerID(0); i < 4; i++ {
+	for i := PlayerID(0); int(i) < len(players); i++ {
 		fmt.Printf("PLAYER %d\n", i)
-		displayDeck(state.heldCards[i])
+		displayDeck(state.playerStates[i].cards)
 	}
 }
-
-
 
 type Card struct {
 	Value Value
 	Color Color
 }
 
+type playerState struct {
+	cards []Card
+	logic PlayerLogic
+}
+
 type gameState struct {
 	drawPile []Card
-	heldCards map[PlayerID][]Card
+	playerStates map[PlayerID]*playerState
 
 	redTokens int  // bad plays
 	blueTokens int  // available information
 }
 
-func initialDraw(deck []Card, numPlayers int) (*gameState, error) {
+func initializeGame(deck []Card, players []PlayerLogic) (*gameState, error) {
+	numPlayers := len(players)
+
 	cardsPerPlayer, ok := INITIAL_CARDS[numPlayers]
 	if !ok {
 		return nil, fmt.Errorf("Invalid number of players: %d", numPlayers)
 	}
 
-	state := &gameState{heldCards: make(map[PlayerID][]Card), drawPile: []Card{}}
+	state := &gameState{playerStates: make(map[PlayerID]*playerState), drawPile: []Card{}}
 
 	for p := PlayerID(0); int(p) < numPlayers; p++ {
-		state.heldCards[p] = []Card{}
+		state.playerStates[p] = &playerState{
+			cards: []Card{},
+			logic: players[p],
+		}
 	}
 
 	drawCount := 0
 	for c := 0; c < cardsPerPlayer; c++ {
 		for p := PlayerID(0); int(p) < numPlayers; p++ {
 			// TODO(mrjones): bounds check
-			state.heldCards[p] = append(state.heldCards[p], deck[drawCount])
+			state.playerStates[p].cards = append(state.playerStates[p].cards, deck[drawCount])
 			drawCount++
 		}
 	}
