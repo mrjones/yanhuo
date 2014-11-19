@@ -97,7 +97,7 @@ func (a Action) DebugString() string {
 }
 
 
-type PlayerLogic interface {
+type PlayerStrategy interface {
 	Act(
 		otherPlayersCards map[PlayerIndex][]Card,
 		myNumCards int,
@@ -107,15 +107,15 @@ type PlayerLogic interface {
 	ObserveAction(actor PlayerIndex, action Action)
 }
 
-type SimplePlayerLogic struct {
+type SimplePlayerStrategy struct {
 	Name string
 }
 
-func (p *SimplePlayerLogic) Act(otherPlayersCards map[PlayerIndex][]Card, myNumCards int, blueTokens int, redTokens int) Action {
+func (p *SimplePlayerStrategy) Act(otherPlayersCards map[PlayerIndex][]Card, myNumCards int, blueTokens int, redTokens int) Action {
 	return Action{Play: &PlayAction{Index: 0}}
 }
 
-func (p *SimplePlayerLogic) ObserveAction(actor PlayerIndex, action Action) {
+func (p *SimplePlayerStrategy) ObserveAction(actor PlayerIndex, action Action) {
 	log.Printf("%s observed '%s' (by player %d)\n", p.Name, action.DebugString(), actor)
 }
 
@@ -123,8 +123,8 @@ func main() {
 	fmt.Println("Hello, world!")
 	
 	deck := shuffle(createDeck())
-	players := []PlayerLogic{
-		&SimplePlayerLogic{"Matt"}, &SimplePlayerLogic{"Cristina"}}
+	players := []PlayerStrategy{
+		&SimplePlayerStrategy{"Matt"}, &SimplePlayerStrategy{"Cristina"}}
 
 	state, err := initializeGame(deck, players)
 	
@@ -150,7 +150,7 @@ type Card struct {
 
 type playerState struct {
 	cards []Card
-	logic PlayerLogic
+	strategy PlayerStrategy
 }
 
 type gameState struct {
@@ -272,7 +272,7 @@ func (game *gameState) takeTurn() {
 		}
 	}
 
-	action := player.logic.Act(
+	action := player.strategy.Act(
 		otherPlayersCards, len(player.cards), game.blueTokens, game.redTokens)
 	// TODO(mrjones): validate action
 
@@ -291,7 +291,7 @@ func (game *gameState) takeTurn() {
 
 	for i, player := range(game.playerStates) {
 		if PlayerIndex(i) != game.currentPlayer {
-			player.logic.ObserveAction(game.currentPlayer, action)
+			player.strategy.ObserveAction(game.currentPlayer, action)
 		}
 	}
 
@@ -300,7 +300,7 @@ func (game *gameState) takeTurn() {
 		(int(game.currentPlayer) + 1) % len(game.playerStates))
 }
 
-func initializeGame(deck []Card, players []PlayerLogic) (*gameState, error) {
+func initializeGame(deck []Card, players []PlayerStrategy) (*gameState, error) {
 	numPlayers := len(players)
 
 	cardsPerPlayer, ok := INITIAL_CARDS[numPlayers]
@@ -324,7 +324,7 @@ func initializeGame(deck []Card, players []PlayerLogic) (*gameState, error) {
 	for p := PlayerIndex(0); int(p) < numPlayers; p++ {
 		state.playerStates[p] = &playerState{
 			cards: []Card{},
-			logic: players[p],
+			strategy: players[p],
 		}
 	}
 
