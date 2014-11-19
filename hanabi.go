@@ -107,15 +107,15 @@ type PlayerStrategy interface {
 	ObserveAction(actor PlayerIndex, action Action)
 }
 
-type SimplePlayerStrategy struct {
+type AlwaysPlayFirstCardStrategy struct {
 	Name string
 }
 
-func (p *SimplePlayerStrategy) Act(otherPlayersCards map[PlayerIndex][]Card, myNumCards int, blueTokens int, redTokens int) Action {
+func (p *AlwaysPlayFirstCardStrategy) Act(otherPlayersCards map[PlayerIndex][]Card, myNumCards int, blueTokens int, redTokens int) Action {
 	return Action{Play: &PlayAction{Index: 0}}
 }
 
-func (p *SimplePlayerStrategy) ObserveAction(actor PlayerIndex, action Action) {
+func (p *AlwaysPlayFirstCardStrategy) ObserveAction(actor PlayerIndex, action Action) {
 	log.Printf("%s observed '%s' (by player %d)\n", p.Name, action.DebugString(), actor)
 }
 
@@ -124,7 +124,8 @@ func main() {
 	
 	deck := shuffle(createDeck())
 	players := []PlayerStrategy{
-		&SimplePlayerStrategy{"Matt"}, &SimplePlayerStrategy{"Cristina"}}
+		&AlwaysPlayFirstCardStrategy{"Matt"},
+		&AlwaysPlayFirstCardStrategy{"Cristina"}}
 
 	state, err := initializeGame(deck, players)
 	
