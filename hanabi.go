@@ -92,8 +92,6 @@ func (a Action) DebugString() string {
 
 
 type PlayerLogic interface {
-	// map player -> []card
-	// Act
 	Act(otherPlayersCards map[PlayerIndex][]Card, myNumCards int, blueTokens int, redTokens int) Action
 
 	ObserveAction(actor PlayerIndex, action Action)
