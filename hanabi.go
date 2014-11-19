@@ -147,7 +147,7 @@ type gameState struct {
 	redTokens int  // bad plays
 	blueTokens int  // available information
 
-	
+	nextPlayer PlayerIndex
 }
 
 func initializeGame(deck []Card, players []PlayerLogic) (*gameState, error) {
@@ -161,6 +161,9 @@ func initializeGame(deck []Card, players []PlayerLogic) (*gameState, error) {
 	state := &gameState{
 		playerStates: make([]playerState, numPlayers),
 		drawPile: []Card{},
+		nextPlayer: PlayerIndex(rand.Intn(numPlayers)),
+		redTokens: 3,
+		blueTokens: 8,
 	}
 
 	for p := PlayerIndex(0); int(p) < numPlayers; p++ {
