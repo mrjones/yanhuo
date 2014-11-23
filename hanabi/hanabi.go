@@ -235,8 +235,11 @@ func (game *gameState) handleGiveInformationAction(action *GiveInformationAction
 }
 
 func (game *gameState) handleDiscardAction(player *playerState, action *DiscardAction) {
-	log.Println("TODO: implement discard")
-	// TODO(mrjones): check bounds
+	if int(action.Index) >= len(player.cards) {
+		panic(fmt.Sprintf("Invalid action: Index (%d) was out of bounds (len: %d)",
+			action.Index, len(player.cards)))
+	}
+	
 	card := player.cards[action.Index]
 	log.Printf("Player %d discards a %s %d\n",
 		game.currentPlayer, kColorInfos[card.Color].fullName, card.Value)
