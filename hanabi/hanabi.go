@@ -293,7 +293,10 @@ func (game *gameState) TakeTurn() {
 
 	action := player.strategy.Act(
 		otherPlayersCards, len(player.cards), game.blueTokens, game.redTokens)
-	// TODO(mrjones): validate action
+
+	if !action.IsValid() {
+		panic("Invalid action: " + action.InvalidReason())
+	}
 
 	log.Printf("Player %d taking action '%s'\n", game.currentPlayer, action.DebugString())
 
