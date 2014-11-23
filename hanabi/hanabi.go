@@ -127,19 +127,6 @@ func (a Action) DebugString() string {
 	}
 }
 
-// TODO(mrjones): move to a separate package
-type AlwaysPlayFirstCardStrategy struct {
-	Name string
-}
-
-func (p *AlwaysPlayFirstCardStrategy) Act(otherPlayersCards map[PlayerIndex][]Card, myNumCards int, blueTokens int, redTokens int) Action {
-	return Action{Play: &PlayAction{Index: 0}}
-}
-
-func (p *AlwaysPlayFirstCardStrategy) ObserveAction(actor PlayerIndex, action Action) {
-	log.Printf("%s observed '%s' (by player %d)\n", p.Name, action.DebugString(), actor)
-}
-
 type playerState struct {
 	cards []Card
 	strategy PlayerStrategy

@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/mrjones/hanabi/hanabi"
+	"github.com/mrjones/hanabi/strategies"
 
 	"fmt"
 	"log"
@@ -11,8 +12,8 @@ func main() {
 	fmt.Println("Hello, world!")
 	
 	players := []hanabi.PlayerStrategy{
-		&hanabi.AlwaysPlayFirstCardStrategy{"Matt"},
-		&hanabi.AlwaysPlayFirstCardStrategy{"Cristina"}}
+		&strategies.AlwaysPlayFirstCardStrategy{"Matt"},
+		&strategies.AlwaysPlayFirstCardStrategy{"Cristina"}}
 
 	state, err := hanabi.InitializeGame(players)
 	
