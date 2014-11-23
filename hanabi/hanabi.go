@@ -13,8 +13,6 @@ type PlayerIndex int8
 type HandIndex int8
 
 const (
-	MAX_BLUE_TOKENS = 8
-
 	WHITE Color = iota
 	RED
 	BLUE
@@ -24,35 +22,14 @@ const (
 
 var ALL_COLORS = []Color{WHITE, RED, BLUE, YELLOW, GREEN}
 
-type colorInfo struct {
-	fullName string
-	shortName string
+type Card struct {
+	Value Value
+	Color Color
 }
 
-var COLOR_INFOS = map[Color]colorInfo {
-	WHITE: colorInfo{fullName: "WHITE", shortName: "W"},
-	RED: colorInfo{fullName: "RED", shortName: "R"},
-	BLUE: colorInfo{fullName: "BLUE", shortName: "B"},
-	YELLOW: colorInfo{fullName: "YELLOW", shortName: "Y"},
-	GREEN: colorInfo{fullName: "GREEN", shortName: "G"},
-}
-
-
-var VALUE_COUNTS = map[Value]int{
-	1: 3,
-	2: 2,
-	3: 2,
-	4: 2,
-	5: 1,
-}
-
-// map from number of players to number of initial cards
-var INITIAL_CARDS = map[int]int {
-	2: 5,
-	3: 5,
-	4: 4,
-	5: 4,
-}
+//
+// Interface for implementing new strategies
+//
 
 type GiveInformationAction struct {
 	// The player information is being given about
@@ -83,6 +60,54 @@ type Action struct {
 	Play *PlayAction
 }
 
+type PlayerStrategy interface {
+	Act(
+		otherPlayersCards map[PlayerIndex][]Card,
+		myNumCards int,
+		blueTokens int,
+		redTokens int) Action
+
+	ObserveAction(actor PlayerIndex, action Action)
+}
+
+//
+// IMPLEMENTATION DETAILS BELOW HERE
+//
+
+const (
+	kMaxBlueTokens = 8
+)
+
+type colorInfo struct {
+	fullName string
+	shortName string
+}
+
+var kColorInfos = map[Color]colorInfo {
+	WHITE: colorInfo{fullName: "WHITE", shortName: "W"},
+	RED: colorInfo{fullName: "RED", shortName: "R"},
+	BLUE: colorInfo{fullName: "BLUE", shortName: "B"},
+	YELLOW: colorInfo{fullName: "YELLOW", shortName: "Y"},
+	GREEN: colorInfo{fullName: "GREEN", shortName: "G"},
+}
+
+
+var kValueCounts = map[Value]int{
+	1: 3,
+	2: 2,
+	3: 2,
+	4: 2,
+	5: 1,
+}
+
+// map from number of players to number of initial cards
+var kInitialCards = map[int]int {
+	2: 5,
+	3: 5,
+	4: 4,
+	5: 4,
+}
+
 func (a Action) DebugString() string {
 	switch {
 	case a.GiveInformation != nil:
@@ -96,17 +121,7 @@ func (a Action) DebugString() string {
 	}
 }
 
-
-type PlayerStrategy interface {
-	Act(
-		otherPlayersCards map[PlayerIndex][]Card,
-		myNumCards int,
-		blueTokens int,
-		redTokens int) Action
-
-	ObserveAction(actor PlayerIndex, action Action)
-}
-
+// TODO(mrjones): move to a separate package
 type AlwaysPlayFirstCardStrategy struct {
 	Name string
 }
@@ -117,11 +132,6 @@ func (p *AlwaysPlayFirstCardStrategy) Act(otherPlayersCards map[PlayerIndex][]Ca
 
 func (p *AlwaysPlayFirstCardStrategy) ObserveAction(actor PlayerIndex, action Action) {
 	log.Printf("%s observed '%s' (by player %d)\n", p.Name, action.DebugString(), actor)
-}
-
-type Card struct {
-	Value Value
-	Color Color
 }
 
 type playerState struct {
@@ -147,7 +157,7 @@ func (game *gameState) drawReplacement(player *playerState, card HandIndex) {
 		player.cards[card] = drawn
 		game.drawPile = game.drawPile[1:]
 		log.Printf("Player %d drew a %s %d\n", game.currentPlayer,
-			COLOR_INFOS[drawn.Color].fullName, drawn.Value)	
+			kColorInfos[drawn.Color].fullName, drawn.Value)	
 	} else {
 		// nothing to draw, remove this card
 		player.cards[card] = player.cards[len(player.cards) - 1]
@@ -203,11 +213,11 @@ func (game *gameState) handleDiscardAction(player *playerState, action *DiscardA
 	// TODO(mrjones): check bounds
 	card := player.cards[action.Index]
 	log.Printf("Player %d discards a %s %d\n",
-		game.currentPlayer, COLOR_INFOS[card.Color].fullName, card.Value)
+		game.currentPlayer, kColorInfos[card.Color].fullName, card.Value)
 
 	game.drawReplacement(player, action.Index)
 
-	if game.blueTokens < MAX_BLUE_TOKENS {
+	if game.blueTokens < kMaxBlueTokens {
 		game.blueTokens++
 	}
 }
@@ -216,12 +226,12 @@ func (game *gameState) handlePlayAction(player *playerState, action *PlayAction)
 	// TODO(mrjones): check bounds
 	card := player.cards[action.Index]
 	log.Printf("Player %d plays a %s %d\n",
-		game.currentPlayer, COLOR_INFOS[card.Color].fullName, card.Value)
+		game.currentPlayer, kColorInfos[card.Color].fullName, card.Value)
 	if int(card.Value) ==  game.pileHeights[card.Color] + 1 {
 		// successful play
 		game.pileHeights[card.Color]++
 		log.Printf("Good play! %s pile now has height: %d\n",
-			COLOR_INFOS[card.Color].fullName, game.pileHeights[card.Color])
+			kColorInfos[card.Color].fullName, game.pileHeights[card.Color])
 		// TODO(mrjones): check if we won the game
 	} else {
 		// unsuccessful play
@@ -276,10 +286,12 @@ func (game *gameState) TakeTurn() {
 		(int(game.currentPlayer) + 1) % len(game.playerStates))
 }
 
-func InitializeGame(deck []Card, players []PlayerStrategy) (*gameState, error) {
+func InitializeGame(players []PlayerStrategy) (*gameState, error) {
+	deck := shuffle(createDeck())
+
 	numPlayers := len(players)
 
-	cardsPerPlayer, ok := INITIAL_CARDS[numPlayers]
+	cardsPerPlayer, ok := kInitialCards[numPlayers]
 	if !ok {
 		return nil, fmt.Errorf("Invalid number of players: %d", numPlayers)
 	}
@@ -290,7 +302,7 @@ func InitializeGame(deck []Card, players []PlayerStrategy) (*gameState, error) {
 		drawPile: []Card{},
 		currentPlayer: PlayerIndex(rand.Intn(numPlayers)),
 		redTokens: 3,
-		blueTokens: MAX_BLUE_TOKENS,
+		blueTokens: kMaxBlueTokens,
 	}
 
 	for i, _ := range(ALL_COLORS) {
@@ -319,11 +331,11 @@ func InitializeGame(deck []Card, players []PlayerStrategy) (*gameState, error) {
 
 func DisplayDeck(deck []Card) {
 	for _, card := range(deck) {
-		fmt.Printf("color: %s, value: %d\n", COLOR_INFOS[card.Color].fullName, card.Value)
+		fmt.Printf("color: %s, value: %d\n", kColorInfos[card.Color].fullName, card.Value)
 	}
 }
 
-func Shuffle(in []Card) []Card {
+func shuffle(in []Card) []Card {
 	rand.Seed(time.Now().UTC().UnixNano())
 
 	out := []Card{}
@@ -334,10 +346,10 @@ func Shuffle(in []Card) []Card {
 	return out
 }
 
-func CreateDeck() []Card {
+func createDeck() []Card {
 	cards := []Card{}
-	for color, _ := range(COLOR_INFOS) {
-		for value, count := range(VALUE_COUNTS) {
+	for color, _ := range(kColorInfos) {
+		for value, count := range(kValueCounts) {
 			for i := 0; i < count; i++ {
 				cards = append(cards, Card{Value: value, Color: color})
 			}

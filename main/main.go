@@ -10,12 +10,11 @@ import (
 func main() {
 	fmt.Println("Hello, world!")
 	
-	deck := hanabi.Shuffle(hanabi.CreateDeck())
 	players := []hanabi.PlayerStrategy{
 		&hanabi.AlwaysPlayFirstCardStrategy{"Matt"},
 		&hanabi.AlwaysPlayFirstCardStrategy{"Cristina"}}
 
-	state, err := hanabi.InitializeGame(deck, players)
+	state, err := hanabi.InitializeGame(players)
 	
 	if err != nil {
 		log.Fatal(err)
