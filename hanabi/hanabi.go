@@ -1,4 +1,4 @@
-package main
+package hanabi
 
 import (
 	"fmt"
@@ -119,31 +119,6 @@ func (p *AlwaysPlayFirstCardStrategy) ObserveAction(actor PlayerIndex, action Ac
 	log.Printf("%s observed '%s' (by player %d)\n", p.Name, action.DebugString(), actor)
 }
 
-func main() {
-	fmt.Println("Hello, world!")
-	
-	deck := shuffle(createDeck())
-	players := []PlayerStrategy{
-		&AlwaysPlayFirstCardStrategy{"Matt"},
-		&AlwaysPlayFirstCardStrategy{"Cristina"}}
-
-	state, err := initializeGame(deck, players)
-	
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	for i := PlayerIndex(0); int(i) < len(players); i++ {
-		fmt.Printf("PLAYER %d\n", i)
-		displayDeck(state.playerStates[i].cards)
-	}
-
-	for {
-		log.Println("---")
-		state.takeTurn()
-	}
-}
-
 type Card struct {
 	Value Value
 	Color Color
@@ -262,7 +237,7 @@ func (game *gameState) handlePlayAction(player *playerState, action *PlayAction)
 	game.drawReplacement(player, action.Index)
 }
 
-func (game *gameState) takeTurn() {
+func (game *gameState) TakeTurn() {
 	player := game.playerStates[game.currentPlayer]
 
 	otherPlayersCards := make(map[PlayerIndex][]Card)
@@ -301,7 +276,7 @@ func (game *gameState) takeTurn() {
 		(int(game.currentPlayer) + 1) % len(game.playerStates))
 }
 
-func initializeGame(deck []Card, players []PlayerStrategy) (*gameState, error) {
+func InitializeGame(deck []Card, players []PlayerStrategy) (*gameState, error) {
 	numPlayers := len(players)
 
 	cardsPerPlayer, ok := INITIAL_CARDS[numPlayers]
@@ -342,13 +317,13 @@ func initializeGame(deck []Card, players []PlayerStrategy) (*gameState, error) {
 	return state, nil
 }
 
-func displayDeck(deck []Card) {
+func DisplayDeck(deck []Card) {
 	for _, card := range(deck) {
 		fmt.Printf("color: %s, value: %d\n", COLOR_INFOS[card.Color].fullName, card.Value)
 	}
 }
 
-func shuffle(in []Card) []Card {
+func Shuffle(in []Card) []Card {
 	rand.Seed(time.Now().UTC().UnixNano())
 
 	out := []Card{}
@@ -359,7 +334,7 @@ func shuffle(in []Card) []Card {
 	return out
 }
 
-func createDeck() []Card {
+func CreateDeck() []Card {
 	cards := []Card{}
 	for color, _ := range(COLOR_INFOS) {
 		for value, count := range(VALUE_COUNTS) {
