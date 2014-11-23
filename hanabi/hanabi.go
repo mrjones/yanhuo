@@ -1,3 +1,9 @@
+// To play a game:
+// 1. Call hanabi.InitializeGame() passing in an array of PlayerStrategies
+//    (See below for how to implement a PlayerStrategy)
+// 2. Repeatedly call TakeTurn on the returned object
+//    TODO(mrjones): define when to *stop* calling TakeTurn
+
 package hanabi
 
 import (
@@ -31,6 +37,23 @@ type Card struct {
 // Interface for implementing new strategies
 //
 
+type PlayerStrategy interface {
+	Act(
+		otherPlayersCards map[PlayerIndex][]Card,
+		myNumCards int,
+		blueTokens int,
+		redTokens int) Action
+
+	ObserveAction(actor PlayerIndex, action Action)
+}
+
+type Action struct {
+	// Exactly one one must be non-null
+	GiveInformation *GiveInformationAction
+	Discard *DiscardAction
+	Play *PlayAction
+}
+
 type GiveInformationAction struct {
 	// The player information is being given about
 	PlayerIndex PlayerIndex
@@ -51,23 +74,6 @@ type DiscardAction struct {
 type PlayAction struct {
 	// The index of the card to discard
 	Index HandIndex
-}
-
-type Action struct {
-	// Exactly one one must be non-null
-	GiveInformation *GiveInformationAction
-	Discard *DiscardAction
-	Play *PlayAction
-}
-
-type PlayerStrategy interface {
-	Act(
-		otherPlayersCards map[PlayerIndex][]Card,
-		myNumCards int,
-		blueTokens int,
-		redTokens int) Action
-
-	ObserveAction(actor PlayerIndex, action Action)
 }
 
 //
