@@ -97,23 +97,6 @@ var kColorInfos = map[Color]colorInfo {
 	GREEN: colorInfo{fullName: "GREEN", shortName: "G"},
 }
 
-
-var kValueCounts = map[Value]int{
-	1: 3,
-	2: 2,
-	3: 2,
-	4: 2,
-	5: 1,
-}
-
-// map from number of players to number of initial cards
-var kInitialCards = map[int]int {
-	2: 5,
-	3: 5,
-	4: 4,
-	5: 4,
-}
-
 func (a Action) DebugString() string {
 	switch {
 	case a.GiveInformation != nil:
@@ -284,6 +267,14 @@ func InitializeGame(players []PlayerStrategy) (*gameState, error) {
 
 	numPlayers := len(players)
 
+	// map from number of players to number of initial cards per player
+	var kInitialCards = map[int]int {
+		2: 5,
+		3: 5,
+		4: 4,
+		5: 4,
+	}
+
 	cardsPerPlayer, ok := kInitialCards[numPlayers]
 	if !ok {
 		return nil, fmt.Errorf("Invalid number of players: %d", numPlayers)
@@ -340,10 +331,18 @@ func shuffle(in []Card) []Card {
 }
 
 func createDeck() []Card {
+	var kNumCardsInDeckByValue = map[Value]int{
+		1: 3,
+		2: 2,
+		3: 2,
+		4: 2,
+		5: 1,
+	}
+
 	cards := []Card{}
 	for color, _ := range(kColorInfos) {
-		for value, count := range(kValueCounts) {
-			for i := 0; i < count; i++ {
+		for value, numCardsInDeckWithValue := range(kNumCardsInDeckByValue) {
+			for i := 0; i < numCardsInDeckWithValue; i++ {
 				cards = append(cards, Card{Value: value, Color: color})
 			}
 		}
