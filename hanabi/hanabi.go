@@ -110,6 +110,57 @@ func (a Action) DebugString() string {
 	}
 }
 
+const kValid = ""
+
+func (a Action) IsValid() bool {
+	return a.InvalidReason() == kValid
+}
+
+func (a Action) InvalidReason() string {
+	subActions := 0
+	if a.GiveInformation != nil {
+		subActions++
+		subReason := a.GiveInformation.invalidReason()
+		if subReason != kValid {
+			return subReason
+		}
+	}
+	if a.Discard != nil {
+		subActions++
+	}
+	if a.Play != nil {
+		subActions++
+	}
+
+	if subActions == 1 {
+		return kValid
+	} else if (subActions == 0) {
+		return "No sub action (GiveInformation, Play, Discard) was set."
+	} else {
+		return "More than one sub action (GiveInformation, Play, Discard) was set."
+	}
+}
+
+func (a *GiveInformationAction) invalidReason() string {
+	informationTypes := 0
+	if a.Color != nil {
+		informationTypes++
+	}
+	if a.Value != nil {
+		informationTypes++
+	}
+
+	if informationTypes == 1 {
+		return kValid
+	} else if (informationTypes == 0) {
+		return "No information type (Color, Value) was set."
+	} else {
+		return "More than one information type (Color, Value) was set."
+	}
+
+	return kValid
+}
+
 type playerState struct {
 	cards []Card
 	strategy PlayerStrategy
@@ -147,10 +198,10 @@ func (game *gameState) handleGiveInformationAction(action *GiveInformationAction
 		panic("Invalid action: not enough blue tokens")
 	}
 
-	// TODO(mrjones): validate that GiveInformationAction is valid
-	// (i.e. only one of Color and Value is set)
+	if action.invalidReason() != kValid {
+		panic("Invalid action:" + action.invalidReason());
+	}
 
-	// TODO(mrjones): validate that the information given is correct and complete
 	recipient := game.playerStates[action.PlayerIndex]
 	for candidateCardPos, candidateCard := range(recipient.cards) {
 		givingInformationAboutThisCard := false
@@ -163,25 +214,24 @@ func (game *gameState) handleGiveInformationAction(action *GiveInformationAction
 		if givingInformationAboutThisCard {
 			// check that the information matches this card
 			if action.Color != nil && candidateCard.Color != *action.Color {
-				panic("GiveInformationAction color does not match actual card color")
+				panic("Invalid action: GiveInformationAction color does not match actual card color")
 			}
 			if action.Value != nil && candidateCard.Value != *action.Value {
-				panic("GiveInformationAction value does not match actual card value")
+				panic("Invalid action: GiveInformationAction value does not match actual card value")
 			}
 		} else {
 			// check that the information does NOT apply to this card
 			if action.Color != nil && candidateCard.Color == *action.Color {
-				panic("GiveInformationAction color matches un-referenced card")
+				panic("Invalid action: GiveInformationAction color matches un-referenced card")
 			}
 			if action.Value != nil && candidateCard.Value == *action.Value {
-				panic("GiveInformationAction value matches un-referenced card")
+				panic("Invalid action: GiveInformationAction value matches un-referenced card")
 			}
 			
 		}
 	}
 
 	game.blueTokens--
-	
 }
 
 func (game *gameState) handleDiscardAction(player *playerState, action *DiscardAction) {
