@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/mrjones/yanhuo/yanhuo"
+	"github.com/mrjones/yanhuo/core"
 	"github.com/mrjones/yanhuo/strategies"
 
 	"log"

@@ -1,7 +1,7 @@
 package strategies
 
 import (
-	"github.com/mrjones/yanhuo/yanhuo"
+	"github.com/mrjones/yanhuo/core"
 
 	"log"
 )
