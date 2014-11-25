@@ -6,7 +6,6 @@ import (
 )
 
 type LoggingObserver struct {
-	
 }
 
 func (o *LoggingObserver) ObserveAction(p PlayerIndex, a Action) {
@@ -40,7 +39,7 @@ func (o *LoggingObserver) GameComplete(won bool, piles map[Color]int) {
 }
 
 func (o *LoggingObserver) GameStart(cards [][]Card) {
-	for i, playerCards := range(cards) {
+	for i, playerCards := range cards {
 		log.Printf("Player %d: [%s]\n", i, summarizeCards(playerCards))
 	}
 	log.Printf("===\n")
@@ -50,7 +49,7 @@ func summarizeCards(cards []Card) string {
 	a := ""
 	sep := ""
 
-	for _, c := range(cards) {
+	for _, c := range cards {
 		a = fmt.Sprintf("%s%s%s%d", a, sep, kColorInfos[c.Color].shortName, c.Value)
 		sep = ", "
 	}

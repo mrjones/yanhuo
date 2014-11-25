@@ -4,24 +4,19 @@ import (
 	"github.com/mrjones/hanabi/hanabi"
 	"github.com/mrjones/hanabi/strategies"
 
-	"fmt"
 	"log"
 )
 
 func main() {
-	fmt.Println("Hello, world!")
-	
-	players := []hanabi.PlayerStrategy{
-		&strategies.AlwaysPlayFirstCardStrategy{"Matt"},
-		&strategies.AlwaysPlayFirstCardStrategy{"Cristina"}}
+	state, err := hanabi.InitializeGame(
+		[]hanabi.PlayerStrategy{
+			&strategies.AlwaysPlayFirstCardStrategy{"Matt"},
+			&strategies.AlwaysPlayFirstCardStrategy{"Cristina"},
+		},
+		[]hanabi.Observer{
+			&hanabi.LoggingObserver{},
+		})
 
-	observers := []hanabi.Observer{
-		&hanabi.LoggingObserver{},
-	}
-
-
-	state, err := hanabi.InitializeGame(players, observers)
-	
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -48,8 +48,8 @@ type PlayerStrategy interface {
 type Action struct {
 	// Exactly one one must be non-null
 	GiveInformation *GiveInformationAction
-	Discard *DiscardAction
-	Play *PlayAction
+	Discard         *DiscardAction
+	Play            *PlayAction
 }
 
 type GiveInformationAction struct {
@@ -98,20 +98,20 @@ const (
 	kMaxBlueTokens = 8
 
 	kKeepGoing = true
-	kStop = false
+	kStop      = false
 )
 
 type colorInfo struct {
-	fullName string
+	fullName  string
 	shortName string
 }
 
-var kColorInfos = map[Color]colorInfo {
-	WHITE: colorInfo{fullName: "WHITE", shortName: "W"},
-	RED: colorInfo{fullName: "RED", shortName: "R"},
-	BLUE: colorInfo{fullName: "BLUE", shortName: "B"},
+var kColorInfos = map[Color]colorInfo{
+	WHITE:  colorInfo{fullName: "WHITE", shortName: "W"},
+	RED:    colorInfo{fullName: "RED", shortName: "R"},
+	BLUE:   colorInfo{fullName: "BLUE", shortName: "B"},
 	YELLOW: colorInfo{fullName: "YELLOW", shortName: "Y"},
-	GREEN: colorInfo{fullName: "GREEN", shortName: "G"},
+	GREEN:  colorInfo{fullName: "GREEN", shortName: "G"},
 }
 
 func (a Action) DebugString() string {
@@ -151,7 +151,7 @@ func (a Action) InvalidReason() string {
 
 	if subActions == 1 {
 		return kValid
-	} else if (subActions == 0) {
+	} else if subActions == 0 {
 		return "No sub action (GiveInformation, Play, Discard) was set."
 	} else {
 		return "More than one sub action (GiveInformation, Play, Discard) was set."
@@ -169,7 +169,7 @@ func (a *GiveInformationAction) invalidReason() string {
 
 	if informationTypes == 1 {
 		return kValid
-	} else if (informationTypes == 0) {
+	} else if informationTypes == 0 {
 		return "No information type (Color, Value) was set."
 	} else {
 		return "More than one information type (Color, Value) was set."
@@ -179,23 +179,23 @@ func (a *GiveInformationAction) invalidReason() string {
 }
 
 type playerState struct {
-	cards []Card
+	cards    []Card
 	strategy PlayerStrategy
 }
 
 type gameState struct {
-	drawPile []Card
-	pileHeights map[Color]int
+	drawPile     []Card
+	pileHeights  map[Color]int
 	playerStates []*playerState
-	observers []Observer
+	observers    []Observer
 
-	redTokens int  // bad plays
-	blueTokens int  // available information
+	redTokens  int // bad plays
+	blueTokens int // available information
 
 	currentPlayer PlayerIndex
 
 	finished bool
-	won bool
+	won      bool
 }
 
 func (game *gameState) drawReplacement(player *playerState, card HandIndex) {
@@ -204,12 +204,12 @@ func (game *gameState) drawReplacement(player *playerState, card HandIndex) {
 		drawn := game.drawPile[0]
 		player.cards[card] = drawn
 		game.drawPile = game.drawPile[1:]
-		for _, o := range(game.observers) {
+		for _, o := range game.observers {
 			o.ObserveDraw(game.currentPlayer, drawn, card)
 		}
 	} else {
 		// nothing to draw, remove this card
-		player.cards[card] = player.cards[len(player.cards) - 1]
+		player.cards[card] = player.cards[len(player.cards)-1]
 		player.cards = player.cards[1:]
 	}
 }
@@ -220,13 +220,13 @@ func (game *gameState) handleGiveInformationAction(action *GiveInformationAction
 	}
 
 	if action.invalidReason() != kValid {
-		panic("Invalid action:" + action.invalidReason());
+		panic("Invalid action:" + action.invalidReason())
 	}
 
 	recipient := game.playerStates[action.PlayerIndex]
-	for candidateCardPos, candidateCard := range(recipient.cards) {
+	for candidateCardPos, candidateCard := range recipient.cards {
 		givingInformationAboutThisCard := false
-		for _, actualCardPos := range(action.Cards) {
+		for _, actualCardPos := range action.Cards {
 			if actualCardPos == HandIndex(candidateCardPos) {
 				givingInformationAboutThisCard = true
 			}
@@ -248,7 +248,7 @@ func (game *gameState) handleGiveInformationAction(action *GiveInformationAction
 			if action.Value != nil && candidateCard.Value == *action.Value {
 				panic("Invalid action: GiveInformationAction value matches un-referenced card")
 			}
-			
+
 		}
 	}
 
@@ -261,9 +261,9 @@ func (game *gameState) handleDiscardAction(player *playerState, action *DiscardA
 		panic(fmt.Sprintf("Invalid action: Index (%d) was out of bounds (len: %d)",
 			action.Index, len(player.cards)))
 	}
-	
+
 	card := player.cards[action.Index]
-	for _, o := range(game.observers) {
+	for _, o := range game.observers {
 		o.ObserveDiscard(game.currentPlayer, card, action.Index)
 	}
 
@@ -283,15 +283,15 @@ func (game *gameState) handlePlayAction(player *playerState, action *PlayAction)
 	}
 
 	card := player.cards[action.Index]
-	success := int(card.Value) ==  game.pileHeights[card.Color] + 1
-	for _, o := range(game.observers) {
+	success := int(card.Value) == game.pileHeights[card.Color]+1
+	for _, o := range game.observers {
 		o.ObservePlay(game.currentPlayer, card, success)
 	}
 	if success {
 		// successful play
 		game.pileHeights[card.Color]++
 		won := true
-		for _, color := range(ALL_COLORS) {
+		for _, color := range ALL_COLORS {
 			if game.pileHeights[color] != 5 {
 				won = false
 			}
@@ -318,9 +318,10 @@ func (game *gameState) handlePlayAction(player *playerState, action *PlayAction)
 }
 
 func (game *gameState) Play() bool {
-	for game.takeTurn() {	}
+	for game.takeTurn() {
+	}
 
-	for _, o := range(game.observers) {
+	for _, o := range game.observers {
 		o.GameComplete(game.won, game.pileHeights)
 	}
 
@@ -332,7 +333,7 @@ func (game *gameState) takeTurn() bool {
 
 	otherPlayersCards := make(map[PlayerIndex][]Card)
 
-	for i, player := range(game.playerStates) {
+	for i, player := range game.playerStates {
 		if PlayerIndex(i) != game.currentPlayer {
 			otherPlayersCards[PlayerIndex(i)] = player.cards
 		}
@@ -345,7 +346,7 @@ func (game *gameState) takeTurn() bool {
 		panic("Invalid action: " + action.InvalidReason())
 	}
 
-	for _, o := range(game.observers) {
+	for _, o := range game.observers {
 		o.ObserveAction(game.currentPlayer, action)
 	}
 
@@ -361,7 +362,7 @@ func (game *gameState) takeTurn() bool {
 		panic("INVALID ACTION")
 	}
 
-	for i, player := range(game.playerStates) {
+	for i, player := range game.playerStates {
 		if PlayerIndex(i) != game.currentPlayer {
 			player.strategy.ObserveAction(game.currentPlayer, action)
 		}
@@ -370,7 +371,7 @@ func (game *gameState) takeTurn() bool {
 	game.currentPlayer = PlayerIndex(
 		(int(game.currentPlayer) + 1) % len(game.playerStates))
 
-	for _, o := range(game.observers) {
+	for _, o := range game.observers {
 		o.TurnComplete(game.pileHeights, game.blueTokens, game.redTokens)
 	}
 
@@ -383,7 +384,7 @@ func InitializeGame(players []PlayerStrategy, observers []Observer) (*gameState,
 	numPlayers := len(players)
 
 	// map from number of players to number of initial cards per player
-	var kInitialCards = map[int]int {
+	var kInitialCards = map[int]int{
 		2: 5,
 		3: 5,
 		4: 4,
@@ -396,24 +397,24 @@ func InitializeGame(players []PlayerStrategy, observers []Observer) (*gameState,
 	}
 
 	state := &gameState{
-		playerStates: make([]*playerState, numPlayers),
-		pileHeights: make(map[Color]int),
-		drawPile: []Card{},
+		playerStates:  make([]*playerState, numPlayers),
+		pileHeights:   make(map[Color]int),
+		drawPile:      []Card{},
 		currentPlayer: PlayerIndex(rand.Intn(numPlayers)),
-		redTokens: 3,
-		blueTokens: kMaxBlueTokens,
-		observers: observers,
-		finished: false,
-		won: false,
+		redTokens:     3,
+		blueTokens:    kMaxBlueTokens,
+		observers:     observers,
+		finished:      false,
+		won:           false,
 	}
 
-	for i, _ := range(ALL_COLORS) {
-		state.pileHeights[Color(i)] = 0;
+	for i, _ := range ALL_COLORS {
+		state.pileHeights[Color(i)] = 0
 	}
 
 	for p := PlayerIndex(0); int(p) < numPlayers; p++ {
 		state.playerStates[p] = &playerState{
-			cards: []Card{},
+			cards:    []Card{},
 			strategy: players[p],
 		}
 	}
@@ -427,9 +428,9 @@ func InitializeGame(players []PlayerStrategy, observers []Observer) (*gameState,
 		}
 	}
 
-	for _, o := range(state.observers) {
+	for _, o := range state.observers {
 		cards := make([][]Card, len(state.playerStates))
-		for i, player := range(state.playerStates) {
+		for i, player := range state.playerStates {
 			cards[i] = player.cards
 		}
 
@@ -441,7 +442,7 @@ func InitializeGame(players []PlayerStrategy, observers []Observer) (*gameState,
 }
 
 func DisplayDeck(deck []Card) {
-	for _, card := range(deck) {
+	for _, card := range deck {
 		fmt.Printf("color: %s, value: %d\n", kColorInfos[card.Color].fullName, card.Value)
 	}
 }
@@ -467,13 +468,13 @@ func createDeck() []Card {
 	}
 
 	cards := []Card{}
-	for color, _ := range(kColorInfos) {
-		for value, numCardsInDeckWithValue := range(kNumCardsInDeckByValue) {
+	for color, _ := range kColorInfos {
+		for value, numCardsInDeckWithValue := range kNumCardsInDeckByValue {
 			for i := 0; i < numCardsInDeckWithValue; i++ {
 				cards = append(cards, Card{Value: value, Color: color})
 			}
 		}
 	}
-	
+
 	return cards
 }
