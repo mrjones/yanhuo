@@ -8,7 +8,6 @@ package hanabi
 
 import (
 	"fmt"
-	"log"
 	"math/rand"
 	"time"
 )
@@ -74,6 +73,19 @@ type DiscardAction struct {
 type PlayAction struct {
 	// The index of the card to discard
 	Index HandIndex
+}
+
+//
+// Interface for observing games
+//
+
+type Observer interface {
+	ObserveAction(p PlayerIndex, a Action)
+	ObserveDiscard(p PlayerIndex, c Card, i HandIndex)
+	ObserveDraw(p PlayerIndex, c Card, i HandIndex)
+	ObservePlay(p PlayerIndex, c Card, successful bool)
+
+	TurnComplete(piles map[Color]int, blueTokens int, redTokens int)
 }
 
 //
@@ -170,6 +182,7 @@ type gameState struct {
 	drawPile []Card
 	pileHeights map[Color]int
 	playerStates []*playerState
+	observers []Observer
 
 	redTokens int  // bad plays
 	blueTokens int  // available information
@@ -183,13 +196,13 @@ func (game *gameState) drawReplacement(player *playerState, card HandIndex) {
 		drawn := game.drawPile[0]
 		player.cards[card] = drawn
 		game.drawPile = game.drawPile[1:]
-		log.Printf("Player %d drew a %s %d\n", game.currentPlayer,
-			kColorInfos[drawn.Color].fullName, drawn.Value)	
+		for _, o := range(game.observers) {
+			o.ObserveDraw(game.currentPlayer, drawn, card)
+		}
 	} else {
 		// nothing to draw, remove this card
 		player.cards[card] = player.cards[len(player.cards) - 1]
 		player.cards = player.cards[1:]
-		log.Printf("Nothing left to draw for player %d\n", game.currentPlayer)
 	}
 }
 
@@ -241,8 +254,9 @@ func (game *gameState) handleDiscardAction(player *playerState, action *DiscardA
 	}
 	
 	card := player.cards[action.Index]
-	log.Printf("Player %d discards a %s %d\n",
-		game.currentPlayer, kColorInfos[card.Color].fullName, card.Value)
+	for _, o := range(game.observers) {
+		o.ObserveDiscard(game.currentPlayer, card, action.Index)
+	}
 
 	game.drawReplacement(player, action.Index)
 
@@ -258,20 +272,18 @@ func (game *gameState) handlePlayAction(player *playerState, action *PlayAction)
 	}
 
 	card := player.cards[action.Index]
-	log.Printf("Player %d plays a %s %d\n",
-		game.currentPlayer, kColorInfos[card.Color].fullName, card.Value)
-	if int(card.Value) ==  game.pileHeights[card.Color] + 1 {
+	success := int(card.Value) ==  game.pileHeights[card.Color] + 1
+	for _, o := range(game.observers) {
+		o.ObservePlay(game.currentPlayer, card, success)
+	}
+	if success {
 		// successful play
 		game.pileHeights[card.Color]++
-		log.Printf("Good play! %s pile now has height: %d\n",
-			kColorInfos[card.Color].fullName, game.pileHeights[card.Color])
 		// TODO(mrjones): check if we won the game
 	} else {
 		// unsuccessful play
 		game.redTokens--
-		log.Printf("That was a bad play. Red tokens left: %d\n", game.redTokens)
 		if game.redTokens == 0 {
-			log.Println("We lost the game!")
 			panic("we lost the game")
 			// TODO(mrjones): we lost the game
 		}
@@ -298,7 +310,9 @@ func (game *gameState) TakeTurn() {
 		panic("Invalid action: " + action.InvalidReason())
 	}
 
-	log.Printf("Player %d taking action '%s'\n", game.currentPlayer, action.DebugString())
+	for _, o := range(game.observers) {
+		o.ObserveAction(game.currentPlayer, action)
+	}
 
 	switch {
 	case action.GiveInformation != nil:
@@ -317,12 +331,15 @@ func (game *gameState) TakeTurn() {
 		}
 	}
 
-
 	game.currentPlayer = PlayerIndex(
 		(int(game.currentPlayer) + 1) % len(game.playerStates))
+
+	for _, o := range(game.observers) {
+		o.TurnComplete(game.pileHeights, game.blueTokens, game.redTokens)
+	}
 }
 
-func InitializeGame(players []PlayerStrategy) (*gameState, error) {
+func InitializeGame(players []PlayerStrategy, observers []Observer) (*gameState, error) {
 	deck := shuffle(createDeck())
 
 	numPlayers := len(players)
@@ -347,6 +364,7 @@ func InitializeGame(players []PlayerStrategy) (*gameState, error) {
 		currentPlayer: PlayerIndex(rand.Intn(numPlayers)),
 		redTokens: 3,
 		blueTokens: kMaxBlueTokens,
+		observers: observers,
 	}
 
 	for i, _ := range(ALL_COLORS) {
