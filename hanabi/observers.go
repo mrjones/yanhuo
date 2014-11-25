@@ -28,3 +28,11 @@ func (o *LoggingObserver) ObservePlay(p PlayerIndex, c Card, successful bool) {
 func (o *LoggingObserver) TurnComplete(piles map[Color]int, blueTokens int, redTokens int) {
 	log.Printf("Turn complete.\n---\n")
 }
+
+func (o *LoggingObserver) GameComplete(won bool, piles map[Color]int) {
+	if won {
+		log.Printf("We won!")
+	} else {
+		log.Printf("We lost.")
+	}
+}

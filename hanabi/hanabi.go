@@ -85,6 +85,7 @@ type Observer interface {
 	ObservePlay(p PlayerIndex, c Card, successful bool)
 
 	TurnComplete(piles map[Color]int, blueTokens int, redTokens int)
+	GameComplete(won bool, piles map[Color]int)
 }
 
 //
@@ -93,6 +94,9 @@ type Observer interface {
 
 const (
 	kMaxBlueTokens = 8
+
+	kKeepGoing = true
+	kStop = false
 )
 
 type colorInfo struct {
@@ -187,6 +191,9 @@ type gameState struct {
 	blueTokens int  // available information
 
 	currentPlayer PlayerIndex
+
+	finished bool
+	won bool
 }
 
 func (game *gameState) drawReplacement(player *playerState, card HandIndex) {
@@ -205,7 +212,7 @@ func (game *gameState) drawReplacement(player *playerState, card HandIndex) {
 	}
 }
 
-func (game *gameState) handleGiveInformationAction(action *GiveInformationAction) {
+func (game *gameState) handleGiveInformationAction(action *GiveInformationAction) bool {
 	if game.blueTokens < 1 {
 		panic("Invalid action: not enough blue tokens")
 	}
@@ -244,9 +251,10 @@ func (game *gameState) handleGiveInformationAction(action *GiveInformationAction
 	}
 
 	game.blueTokens--
+	return kKeepGoing
 }
 
-func (game *gameState) handleDiscardAction(player *playerState, action *DiscardAction) {
+func (game *gameState) handleDiscardAction(player *playerState, action *DiscardAction) bool {
 	if int(action.Index) >= len(player.cards) {
 		panic(fmt.Sprintf("Invalid action: Index (%d) was out of bounds (len: %d)",
 			action.Index, len(player.cards)))
@@ -262,9 +270,11 @@ func (game *gameState) handleDiscardAction(player *playerState, action *DiscardA
 	if game.blueTokens < kMaxBlueTokens {
 		game.blueTokens++
 	}
+
+	return kKeepGoing
 }
 
-func (game *gameState) handlePlayAction(player *playerState, action *PlayAction) {
+func (game *gameState) handlePlayAction(player *playerState, action *PlayAction) bool {
 	if int(action.Index) >= len(player.cards) {
 		panic(fmt.Sprintf("Invalid action: Index (%d) was out of bounds (len: %d)",
 			action.Index, len(player.cards)))
@@ -278,26 +288,44 @@ func (game *gameState) handlePlayAction(player *playerState, action *PlayAction)
 	if success {
 		// successful play
 		game.pileHeights[card.Color]++
+		won := true
+		for _, color := range(ALL_COLORS) {
+			if game.pileHeights[color] != 5 {
+				won = false
+			}
+		}
+		if won {
+			game.finished = true
+			game.won = true
+			return kStop
+		}
+
 		// TODO(mrjones): check if we won the game
 	} else {
 		// unsuccessful play
 		game.redTokens--
 		if game.redTokens == 0 {
-			panic("we lost the game")
-			// TODO(mrjones): we lost the game
+			game.finished = true
+			game.won = false
+			return kStop
 		}
 	}
 
 	game.drawReplacement(player, action.Index)
+	return kKeepGoing
 }
 
 func (game *gameState) Play() bool {
-	for {
-		game.takeTurn()
+	for game.takeTurn() {	}
+
+	for _, o := range(game.observers) {
+		o.GameComplete(game.won, game.pileHeights)
 	}
+
+	return game.won
 }
 
-func (game *gameState) takeTurn() {
+func (game *gameState) takeTurn() bool {
 	player := game.playerStates[game.currentPlayer]
 
 	otherPlayersCards := make(map[PlayerIndex][]Card)
@@ -319,13 +347,14 @@ func (game *gameState) takeTurn() {
 		o.ObserveAction(game.currentPlayer, action)
 	}
 
+	keepGoing := true
 	switch {
 	case action.GiveInformation != nil:
-		game.handleGiveInformationAction(action.GiveInformation)
+		keepGoing = game.handleGiveInformationAction(action.GiveInformation)
 	case action.Discard != nil:
-		game.handleDiscardAction(player, action.Discard)
+		keepGoing = game.handleDiscardAction(player, action.Discard)
 	case action.Play != nil:
-		game.handlePlayAction(player, action.Play)
+		keepGoing = game.handlePlayAction(player, action.Play)
 	default:
 		panic("INVALID ACTION")
 	}
@@ -342,6 +371,8 @@ func (game *gameState) takeTurn() {
 	for _, o := range(game.observers) {
 		o.TurnComplete(game.pileHeights, game.blueTokens, game.redTokens)
 	}
+
+	return keepGoing
 }
 
 func InitializeGame(players []PlayerStrategy, observers []Observer) (*gameState, error) {
@@ -370,6 +401,8 @@ func InitializeGame(players []PlayerStrategy, observers []Observer) (*gameState,
 		redTokens: 3,
 		blueTokens: kMaxBlueTokens,
 		observers: observers,
+		finished: false,
+		won: false,
 	}
 
 	for i, _ := range(ALL_COLORS) {
