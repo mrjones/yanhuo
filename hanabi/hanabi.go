@@ -301,8 +301,6 @@ func (game *gameState) handlePlayAction(player *playerState, action *PlayAction)
 			game.won = true
 			return kStop
 		}
-
-		// TODO(mrjones): check if we won the game
 	} else {
 		// unsuccessful play
 		game.redTokens--
