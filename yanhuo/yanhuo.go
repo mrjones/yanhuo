@@ -1,9 +1,9 @@
 // To play a game:
-// 1. Call hanabi.InitializeGame() passing in an array of PlayerStrategies
+// 1. Call yanhuo.InitializeGame() passing in an array of PlayerStrategies
 //    (See below for how to implement a PlayerStrategy)
 // 2. Call Play on the returned object
 
-package hanabi
+package yanhuo
 
 import (
 	"fmt"

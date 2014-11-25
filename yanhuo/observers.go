@@ -1,4 +1,4 @@
-package hanabi
+package yanhuo
 
 import (
 	"fmt"

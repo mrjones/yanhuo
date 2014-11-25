@@ -1,20 +1,20 @@
 package main
 
 import (
-	"github.com/mrjones/hanabi/hanabi"
-	"github.com/mrjones/hanabi/strategies"
+	"github.com/mrjones/yanhuo/yanhuo"
+	"github.com/mrjones/yanhuo/strategies"
 
 	"log"
 )
 
 func main() {
-	state, err := hanabi.InitializeGame(
-		[]hanabi.PlayerStrategy{
+	state, err := yanhuo.InitializeGame(
+		[]yanhuo.PlayerStrategy{
 			&strategies.AlwaysPlayFirstCardStrategy{"Matt"},
 			&strategies.AlwaysPlayFirstCardStrategy{"Cristina"},
 		},
-		[]hanabi.Observer{
-			&hanabi.LoggingObserver{},
+		[]yanhuo.Observer{
+			&yanhuo.LoggingObserver{},
 		})
 
 	if err != nil {
