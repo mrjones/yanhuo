@@ -1,8 +1,7 @@
 // To play a game:
 // 1. Call hanabi.InitializeGame() passing in an array of PlayerStrategies
 //    (See below for how to implement a PlayerStrategy)
-// 2. Repeatedly call TakeTurn on the returned object
-//    TODO(mrjones): define when to *stop* calling TakeTurn
+// 2. Repeatedly call Play on the returned object
 
 package hanabi
 
@@ -292,7 +291,13 @@ func (game *gameState) handlePlayAction(player *playerState, action *PlayAction)
 	game.drawReplacement(player, action.Index)
 }
 
-func (game *gameState) TakeTurn() {
+func (game *gameState) Play() bool {
+	for {
+		game.takeTurn()
+	}
+}
+
+func (game *gameState) takeTurn() {
 	player := game.playerStates[game.currentPlayer]
 
 	otherPlayersCards := make(map[PlayerIndex][]Card)

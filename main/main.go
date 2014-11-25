@@ -26,7 +26,5 @@ func main() {
 		log.Fatal(err)
 	}
 
-	for {
-		state.TakeTurn()
-	}
+	state.Play()
 }
