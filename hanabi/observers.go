@@ -1,6 +1,7 @@
 package hanabi
 
 import (
+	"fmt"
 	"log"
 )
 
@@ -26,7 +27,8 @@ func (o *LoggingObserver) ObservePlay(p PlayerIndex, c Card, successful bool) {
 }
 
 func (o *LoggingObserver) TurnComplete(piles map[Color]int, blueTokens int, redTokens int) {
-	log.Printf("Turn complete.\n---\n")
+	log.Printf("Turn complete.\n")
+	log.Printf("---\n")
 }
 
 func (o *LoggingObserver) GameComplete(won bool, piles map[Color]int) {
@@ -35,4 +37,23 @@ func (o *LoggingObserver) GameComplete(won bool, piles map[Color]int) {
 	} else {
 		log.Printf("We lost.")
 	}
+}
+
+func (o *LoggingObserver) GameStart(cards [][]Card) {
+	for i, playerCards := range(cards) {
+		log.Printf("Player %d: [%s]\n", i, summarizeCards(playerCards))
+	}
+	log.Printf("===\n")
+}
+
+func summarizeCards(cards []Card) string {
+	a := ""
+	sep := ""
+
+	for _, c := range(cards) {
+		a = fmt.Sprintf("%s%s%s%d", a, sep, kColorInfos[c.Color].shortName, c.Value)
+		sep = ", "
+	}
+
+	return a
 }

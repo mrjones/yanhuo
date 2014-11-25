@@ -79,6 +79,8 @@ type PlayAction struct {
 //
 
 type Observer interface {
+	GameStart(cards [][]Card)
+
 	ObserveAction(p PlayerIndex, a Action)
 	ObserveDiscard(p PlayerIndex, c Card, i HandIndex)
 	ObserveDraw(p PlayerIndex, c Card, i HandIndex)
@@ -423,6 +425,15 @@ func InitializeGame(players []PlayerStrategy, observers []Observer) (*gameState,
 			state.playerStates[p].cards = append(state.playerStates[p].cards, deck[drawCount])
 			drawCount++
 		}
+	}
+
+	for _, o := range(state.observers) {
+		cards := make([][]Card, len(state.playerStates))
+		for i, player := range(state.playerStates) {
+			cards[i] = player.cards
+		}
+
+		o.GameStart(cards)
 	}
 
 	state.drawPile = deck[drawCount:]
