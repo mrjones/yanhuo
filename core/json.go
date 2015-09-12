@@ -6,10 +6,18 @@ import (
 )
 
 func (ci *ColorInformation) MarshalJSON() ([]byte, error) {
-	return json.Marshal(kColorInfos[ci.Color].fullName)
+	return ci.Color.MarshalJSON()
 }
 
 func (ci *ColorInformation) UnmarshalJSON(data []byte) error {
+	return ci.Color.UnmarshalJSON(data)
+}
+
+func (c *Color) MarshalJSON() ([]byte, error) {
+	return json.Marshal(kColorInfos[*c].fullName)
+}
+
+func (c *Color) UnmarshalJSON(data []byte) error {
 	var s string
 	if err := json.Unmarshal(data, &s); err != nil {
 		return fmt.Errorf("color should be a string, got %s", data)
@@ -17,8 +25,7 @@ func (ci *ColorInformation) UnmarshalJSON(data []byte) error {
 
 	for color, colorInfo := range(kColorInfos) {
 		if s == colorInfo.fullName {
-			fmt.Printf("Matched: %d %s %s\n", color, colorInfo.fullName, colorInfo.shortName)
-			ci.Color = color
+			*c = color
 			return nil
 		}
 	}
