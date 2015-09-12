@@ -1,4 +1,4 @@
-package strategies
+package alwaysplay
 
 import (
 	"github.com/mrjones/yanhuo/core"
@@ -6,7 +6,6 @@ import (
 	"log"
 )
 
-// TODO(mrjones): move to a separate package
 type AlwaysPlayFirstCardStrategy struct {
 	Name string
 }

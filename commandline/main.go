@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/mrjones/yanhuo/core"
-	"github.com/mrjones/yanhuo/strategies"
+	"github.com/mrjones/yanhuo/strategies/alwaysplay"
 
 	"log"
 )
@@ -10,8 +10,8 @@ import (
 func main() {
 	state, err := yanhuo.InitializeGame(
 		[]yanhuo.PlayerStrategy{
-			&strategies.AlwaysPlayFirstCardStrategy{"Matt"},
-			&strategies.AlwaysPlayFirstCardStrategy{"Cristina"},
+			&alwaysplay.AlwaysPlayFirstCardStrategy{"Matt"},
+			&alwaysplay.AlwaysPlayFirstCardStrategy{"Cristina"},
 		},
 		[]yanhuo.Observer{
 			&yanhuo.LoggingObserver{},
