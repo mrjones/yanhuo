@@ -6,6 +6,7 @@
 package yanhuo
 
 import (
+	"bytes"
 	"fmt"
 	"math/rand"
 	"time"
@@ -47,9 +48,17 @@ type PlayerStrategy interface {
 
 type Action struct {
 	// Exactly one one must be non-null
-	GiveInformation *GiveInformationAction
-	Discard         *DiscardAction
-	Play            *PlayAction
+	GiveInformation *GiveInformationAction `json:",omitempty"`
+	Discard         *DiscardAction `json:",omitempty"`
+	Play            *PlayAction `json:",omitempty"`
+}
+
+type ColorInformation struct {
+	Color Color
+}
+
+type ValueInformation struct {
+	Value Value
 }
 
 type GiveInformationAction struct {
@@ -60,8 +69,8 @@ type GiveInformationAction struct {
 	Cards []HandIndex
 
 	// Exactly one of color or value must be non-null
-	Color *Color
-	Value *Value
+	Color *ColorInformation `json:",omitempty"`
+	Value *ValueInformation `json:",omitempty"`
 }
 
 type DiscardAction struct {
@@ -114,7 +123,7 @@ var kColorInfos = map[Color]colorInfo{
 	GREEN:  colorInfo{fullName: "GREEN", shortName: "G"},
 }
 
-func (a Action) DebugString() string {
+func (a Action) QuickString() string {
 	switch {
 	case a.GiveInformation != nil:
 		return fmt.Sprintf("Gave information to player: %d", a.GiveInformation.PlayerIndex)
@@ -234,18 +243,18 @@ func (game *gameState) handleGiveInformationAction(action *GiveInformationAction
 
 		if givingInformationAboutThisCard {
 			// check that the information matches this card
-			if action.Color != nil && candidateCard.Color != *action.Color {
+			if action.Color != nil && candidateCard.Color != action.Color.Color {
 				panic("Invalid action: GiveInformationAction color does not match actual card color")
 			}
-			if action.Value != nil && candidateCard.Value != *action.Value {
+			if action.Value != nil && candidateCard.Value != action.Value.Value {
 				panic("Invalid action: GiveInformationAction value does not match actual card value")
 			}
 		} else {
 			// check that the information does NOT apply to this card
-			if action.Color != nil && candidateCard.Color == *action.Color {
+			if action.Color != nil && candidateCard.Color == action.Color.Color {
 				panic("Invalid action: GiveInformationAction color matches un-referenced card")
 			}
-			if action.Value != nil && candidateCard.Value == *action.Value {
+			if action.Value != nil && candidateCard.Value == action.Value.Value {
 				panic("Invalid action: GiveInformationAction value matches un-referenced card")
 			}
 
@@ -475,4 +484,54 @@ func createDeck() []Card {
 	}
 
 	return cards
+}
+
+func (a *Action) DebugString() string {
+	var buffer bytes.Buffer
+
+	if a.GiveInformation != nil {
+		buffer.WriteString("GiveInformation < ")
+		buffer.WriteString(a.GiveInformation.DebugString())
+		buffer.WriteString("> ")
+	}
+
+	if a.Discard != nil {
+		buffer.WriteString("Discard < ")
+		buffer.WriteString(a.Discard.DebugString())
+		buffer.WriteString("> ")
+	}
+
+	if a.Play != nil {
+		buffer.WriteString("Play < ")
+		buffer.WriteString(a.Play.DebugString())
+		buffer.WriteString("> ")
+	}
+	
+	return buffer.String()
+}
+
+func (a *GiveInformationAction) DebugString() string {
+	var buffer bytes.Buffer 
+
+	buffer.WriteString(fmt.Sprintf("PlayerIndex:%d ", a.PlayerIndex))
+	buffer.WriteString(fmt.Sprintf("Cards:%v ", a.Cards))
+
+	if a.Color != nil {
+		buffer.WriteString(fmt.Sprintf(
+			"Color:%s ", kColorInfos[a.Color.Color].fullName))
+	}
+
+	if a.Value != nil {
+		buffer.WriteString(fmt.Sprintf("Value:%d ", a.Value.Value))
+	}
+
+	return buffer.String()
+}
+
+func (a *DiscardAction) DebugString() string {
+	return fmt.Sprintf("Index:%d ", a.Index)
+}
+
+func (a *PlayAction) DebugString() string {
+	return fmt.Sprintf("Index:%d ", a.Index)
 }
