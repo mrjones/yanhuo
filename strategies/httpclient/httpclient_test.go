@@ -79,6 +79,8 @@ func TestObserve(t *testing.T) {
 	if a.DebugString() != transmission.Observation.Action.DebugString() {
 		t.Errorf("Original object:\n'%s'\nDoes not match object parsed on server:\n'%s'", a.DebugString(), transmission.Observation.Action.DebugString())
 	}
+
+	t.Fail()
 }
 
 func makeCard(value int, color yanhuo.Color) yanhuo.Card {

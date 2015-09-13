@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 )
@@ -75,7 +76,15 @@ func (p *HttpClientStrategy) Act(
 	}
 
 	var action yanhuo.Action
-	err = json.NewDecoder(resp.Body).Decode(&action)
+
+	respBytes, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Printf("Unmarshaling: %s\n", string(respBytes))
+
+	err = json.Unmarshal(respBytes, &action)
 	if err != nil {
 		panic(err)
 	}
@@ -93,6 +102,7 @@ func (p *HttpClientStrategy) ObserveAction(actor yanhuo.PlayerIndex, action yanh
 		panic(err)
 	}
 
+	fmt.Printf("Transmitting %s\n", string(payload))
 	p.httpClient.Post(p.remoteEndpoint.String(), "application/json", bytes.NewReader(payload))
 }
 
