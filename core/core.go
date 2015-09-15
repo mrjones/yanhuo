@@ -45,6 +45,7 @@ type PlayerStrategy interface {
 		redTokens int)
 
 	Act(
+		myPlayerIndex PlayerIndex,
 		otherPlayersCards map[PlayerIndex][]Card,
 		myNumCards int,
 		blueTokens int,
@@ -332,6 +333,21 @@ func (game *gameState) handlePlayAction(player *playerState, action *PlayAction)
 }
 
 func (game *gameState) Play() bool {
+
+	for i, player := range game.playerStates {
+		// TODO(mrjones): factor out duplicated code
+		otherPlayersCards := make(map[PlayerIndex][]Card)
+		
+		for j, player := range game.playerStates {
+			if i != j {
+				otherPlayersCards[PlayerIndex(j)] = player.cards
+			}
+		}
+
+		player.strategy.StartGame(
+			PlayerIndex(i), otherPlayersCards, len(player.cards), game.blueTokens, game.redTokens)
+	}
+
 	for game.takeTurn() {
 	}
 
@@ -345,6 +361,7 @@ func (game *gameState) Play() bool {
 func (game *gameState) takeTurn() bool {
 	player := game.playerStates[game.currentPlayer]
 
+	// TODO(mrjones): factor out duplicated code
 	otherPlayersCards := make(map[PlayerIndex][]Card)
 
 	for i, player := range game.playerStates {
@@ -354,7 +371,7 @@ func (game *gameState) takeTurn() bool {
 	}
 
 	action := player.strategy.Act(
-		otherPlayersCards, len(player.cards), game.blueTokens, game.redTokens)
+		game.currentPlayer, otherPlayersCards, len(player.cards), game.blueTokens, game.redTokens)
 
 	if !action.IsValid() {
 		panic("Invalid action: " + action.InvalidReason())

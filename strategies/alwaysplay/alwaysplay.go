@@ -18,6 +18,7 @@ func (p *AlwaysPlayFirstCardStrategy) StartGame(
 	redTokens int) { }
 
 func (p *AlwaysPlayFirstCardStrategy) Act(
+	myPlayerIndex yanhuo.PlayerIndex,
 	otherPlayersCards map[yanhuo.PlayerIndex][]yanhuo.Card,
 	myNumCards int,
 	blueTokens int,

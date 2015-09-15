@@ -83,6 +83,7 @@ func (p *HttpClientStrategy) StartGame(
 }
 
 func (p *HttpClientStrategy) Act(
+	myPlayerIndex yanhuo.PlayerIndex,
 	otherPlayersCards map[yanhuo.PlayerIndex][]yanhuo.Card,
 	myNumCards int,
 	blueTokens int,
@@ -90,6 +91,7 @@ func (p *HttpClientStrategy) Act(
 	transmission := Transmission{
 		MessageType: "ActionRequest",
 		GameState: &GameState{
+			MyPlayerIndex: int(myPlayerIndex),
 			OtherPlayersCards: translateCardMap(otherPlayersCards),
 			MyCardCount: myNumCards,
 			BlueTokens: blueTokens,
