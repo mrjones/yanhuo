@@ -37,6 +37,13 @@ type Card struct {
 //
 
 type PlayerStrategy interface {
+	StartGame(
+		myPlayerIndex PlayerIndex,
+		otherPlayersCards map[PlayerIndex][]Card,
+		myNumCards int,
+		blueTokens int,
+		redTokens int)
+
 	Act(
 		otherPlayersCards map[PlayerIndex][]Card,
 		myNumCards int,

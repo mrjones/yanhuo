@@ -15,7 +15,6 @@ import (
 type TestRoundTripper struct {
 	LastRequest *http.Request
 	Response *http.Response
-
 }
 
 func (tr *TestRoundTripper) RoundTrip(request *http.Request) (*http.Response, error) {
@@ -79,8 +78,6 @@ func TestObserve(t *testing.T) {
 	if a.DebugString() != transmission.Observation.Action.DebugString() {
 		t.Errorf("Original object:\n'%s'\nDoes not match object parsed on server:\n'%s'", a.DebugString(), transmission.Observation.Action.DebugString())
 	}
-
-	t.Fail()
 }
 
 func makeCard(value int, color yanhuo.Color) yanhuo.Card {
@@ -109,20 +106,24 @@ func TestAct(t *testing.T) {
 
 	tran := parseTransmission(t, rt.LastRequest)
 
-	if tran.ActionRequest == nil {
+	if tran.MessageType != "ActionRequest" {
+		t.Errorf("Wrong transmission.MessageType: %s", tran.MessageType)
+	}
+
+	if tran.GameState == nil {
 		t.Errorf("Server should have interpreted action request")
 	}
 
-	if tran.ActionRequest.MyCardCount != 2 {
-		t.Errorf("Wrong card count in transmission: %d", tran.ActionRequest.MyCardCount)
+	if tran.GameState.MyCardCount != 2 {
+		t.Errorf("Wrong card count in transmission: %d", tran.GameState.MyCardCount)
 	}
 
-	if tran.ActionRequest.BlueTokens != 3 {
-		t.Errorf("Wrong blue count in transmission: %d", tran.ActionRequest.BlueTokens)
+	if tran.GameState.BlueTokens != 3 {
+		t.Errorf("Wrong blue count in transmission: %d", tran.GameState.BlueTokens)
 	}
 
-	if tran.ActionRequest.RedTokens != 4 {
-		t.Errorf("Wrong red count in transmission: %d", tran.ActionRequest.RedTokens)
+	if tran.GameState.RedTokens != 4 {
+		t.Errorf("Wrong red count in transmission: %d", tran.GameState.RedTokens)
 	}
 
 	if decision.Discard == nil {

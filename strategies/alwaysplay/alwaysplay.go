@@ -10,6 +10,13 @@ type AlwaysPlayFirstCardStrategy struct {
 	Name string
 }
 
+func (p *AlwaysPlayFirstCardStrategy) StartGame(
+	myPlayerIndex yanhuo.PlayerIndex,
+	otherPlayersCards map[yanhuo.PlayerIndex][]yanhuo.Card,
+	myNumCards int,
+	blueTokens int,
+	redTokens int) { }
+
 func (p *AlwaysPlayFirstCardStrategy) Act(
 	otherPlayersCards map[yanhuo.PlayerIndex][]yanhuo.Card,
 	myNumCards int,

@@ -23,7 +23,8 @@ func NewHttpClientStrategy(remoteEndpoint *url.URL) *HttpClientStrategy {
 	}
 }
 
-type ActionRequest struct {
+type GameState struct {
+	MyPlayerIndex int
 	OtherPlayersCards map[string][]yanhuo.Card
 	MyCardCount int
 	BlueTokens int
@@ -36,7 +37,8 @@ type Observation struct {
 }
 
 type Transmission struct {
-	ActionRequest *ActionRequest `json:",omitempty"`
+	MessageType string
+	GameState *GameState `json:",omitempty"`
 	Observation *Observation `json:",omitempty"`
 }
 
@@ -50,13 +52,44 @@ func translateCardMap(in map[yanhuo.PlayerIndex][]yanhuo.Card) map[string][]yanh
 	return out
 }
 
+func (p *HttpClientStrategy) StartGame(
+	myPlayerIndex yanhuo.PlayerIndex,
+	otherPlayersCards map[yanhuo.PlayerIndex][]yanhuo.Card,
+	myNumCards int,
+	blueTokens int,
+	redTokens int) {
+	transmission := Transmission{
+		MessageType: "StartGame",
+		GameState: &GameState{
+			MyPlayerIndex: int(myPlayerIndex),
+			OtherPlayersCards: translateCardMap(otherPlayersCards),
+			MyCardCount: myNumCards,
+			BlueTokens: blueTokens,
+			RedTokens: redTokens,
+		},
+	}
+	
+	payload, err := json.Marshal(transmission)
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Printf("Transmitting %s\n", string(payload))
+	_, err = p.httpClient.Post(p.remoteEndpoint.String(), "application/json", bytes.NewReader(payload))
+	
+	if err != nil {
+		panic(err)
+	}
+}
+
 func (p *HttpClientStrategy) Act(
 	otherPlayersCards map[yanhuo.PlayerIndex][]yanhuo.Card,
 	myNumCards int,
 	blueTokens int,
 	redTokens int) yanhuo.Action {
 	transmission := Transmission{
-		ActionRequest: &ActionRequest{
+		MessageType: "ActionRequest",
+		GameState: &GameState{
 			OtherPlayersCards: translateCardMap(otherPlayersCards),
 			MyCardCount: myNumCards,
 			BlueTokens: blueTokens,
@@ -94,6 +127,7 @@ func (p *HttpClientStrategy) Act(
 
 func (p *HttpClientStrategy) ObserveAction(actor yanhuo.PlayerIndex, action yanhuo.Action) {
 	transmission := Transmission{
+		MessageType: "Observation",
 		Observation: &Observation{Actor: actor, Action: action},
 	}
 
