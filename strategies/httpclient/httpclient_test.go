@@ -92,6 +92,7 @@ func TestAct(t *testing.T) {
 	rt.Response = makeOkResponse("{\"Discard\":{\"Index\":2}}")
 
 	decision := s.Act(
+		yanhuo.PlayerIndex(2),
 		map[yanhuo.PlayerIndex][]yanhuo.Card{
 			yanhuo.PlayerIndex(0): []yanhuo.Card{
 				makeCard(1, yanhuo.RED),
